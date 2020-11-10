@@ -25,12 +25,21 @@ class CreateCommand extends Command {
 	}
 	
 	protected function execute(InputInterface $input, OutputInterface $output) {
-		$this->httpClient->post(
-			'https://api.trello.com/1/cards', [
-			'query' => ['key' => $_ENV['TRELLO_API_KEY'], 'token' => $_ENV['TRELLO_API_TOKEN']],
-			'json'  => ['name' => $input->getArgument('title'), 'idList' => $_ENV['TRELLO_LIST_ID_REVIEW']],
-		]
+		$response      = $this->httpClient->post(
+			'https://api.trello.com/1/cards',
+			[
+				'query' => ['key' => $_ENV['TRELLO_API_KEY'], 'token' => $_ENV['TRELLO_API_TOKEN']],
+				'json'  => [
+					'name'      => $input->getArgument('title'),
+					'idList'    => $_ENV['TRELLO_LIST_ID_REVIEW'],
+					'idMembers' => $_ENV['TRELLO_MEMBER_ID'],
+				],
+			]
 		);
+		$response      = json_decode((string)$response->getBody(), true, 512, JSON_THROW_ON_ERROR);
+		$trelloCardUrl = $response['shortUrl'];
+		
+		echo $trelloCardUrl;
 		
 		return Command::SUCCESS;
 	}
