@@ -44,7 +44,14 @@ class CreateCommand extends Command {
 		$githubPRUrl = shell_exec('gh pr create --title '.escapeshellarg($title).' --body '.escapeshellarg($trelloCardUrl));
 		
 		if ($githubPRUrl === null) {
-			throw new \Exception('Something went wrong while trying to make the PR. Output of the command: '.$output);
+			$this->httpClient->delete(
+				"https://api.trello.com/1/cards/{$trelloCardID}",
+				[
+					'query' => ['key' => $_ENV['TRELLO_API_KEY'], 'token' => $_ENV['TRELLO_API_TOKEN']],
+				]
+			);
+			
+			throw new \Exception('Something went wrong while trying to make the PR. Output of the command: '.$githubPRUrl);
 		}
 		
 		$this->httpClient->post(
