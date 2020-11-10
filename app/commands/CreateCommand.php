@@ -41,8 +41,11 @@ class CreateCommand extends Command {
 		$trelloCardUrl = $response['url'];
 		$trelloCardID  = $response['id'];
 		
-		$githubPRUrl = shell_exec('gh pr create --title '.escapeshellarg($title).' --body '.escapeshellarg($trelloCardUrl));
+		if (shell_exec('git push origin')) {
+			throw new \Exception('Unable to push the branch to origin');
+		}
 		
+		$githubPRUrl = shell_exec('gh pr create --title '.escapeshellarg($title).' --body '.escapeshellarg($trelloCardUrl));
 		if ($githubPRUrl === null) {
 			$this->httpClient->delete(
 				"https://api.trello.com/1/cards/{$trelloCardID}",
