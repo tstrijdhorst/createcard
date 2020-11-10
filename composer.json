@@ -1,0 +1,14 @@
+{
+    "name": "tstrijdhorst/createcard",
+    "type": "project",
+    "require": {
+        "symfony/console": "^5.1"
+    },
+    "license": "Propietary",
+    "authors": [
+        {
+            "name": "Tim Strijdhorst",
+            "email": "tim@decorrespondent.nl"
+        }
+    ]
+}
