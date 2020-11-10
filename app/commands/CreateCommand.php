@@ -41,13 +41,12 @@ class CreateCommand extends Command {
 		$trelloCardUrl = $response['url'];
 		$trelloCardID  = $response['id'];
 		
-		$output = shell_exec('gh pr create --title '.escapeshellarg($title).' --body '.escapeshellarg($trelloCardUrl));
+		$githubPRUrl = shell_exec('gh pr create --title '.escapeshellarg($title).' --body '.escapeshellarg($trelloCardUrl));
 		
-		if ($output === null) {
+		if ($githubPRUrl === null) {
 			throw new \Exception('Something went wrong while trying to make the PR. Output of the command: '.$output);
 		}
 		
-		$githubPRUrl = $output;
 		$this->httpClient->post(
 			"https://api.trello.com/1/cards/{$trelloCardID}/attachments",
 			[
@@ -57,6 +56,8 @@ class CreateCommand extends Command {
 				],
 			]
 		);
+		
+		$output->writeln('Card URL: '.$trelloCardUrl.PHP_EOL.'PR URL: '.$githubPRUrl);
 		
 		return Command::SUCCESS;
 	}
