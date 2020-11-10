@@ -4,6 +4,11 @@
     "require": {
         "symfony/console": "^5.1"
     },
+    "autoload": {
+        "psr-4": {
+            "createcard\\": "app/"
+        }
+    },
     "license": "Propietary",
     "authors": [
         {
