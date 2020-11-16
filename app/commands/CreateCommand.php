@@ -11,10 +11,12 @@ use Symfony\Component\Console\Output\OutputInterface;
 class CreateCommand extends Command {
 	protected static $defaultName = 'create-card';
 	private Client   $httpClient;
+	private array    $trelloConfig;
 	
-	public function __construct(Client $httpClient) {
+	public function __construct(Client $httpClient, array $trelloConfig) {
 		parent::__construct();
 		$this->httpClient = $httpClient;
+		$this->trelloConfig = $trelloConfig;
 	}
 	
 	protected function configure() {
@@ -26,14 +28,15 @@ class CreateCommand extends Command {
 	}
 	
 	protected function execute(InputInterface $input, OutputInterface $output) {
-		$title         = $input->getArgument('title');
-		$response      = $this->httpClient->post(
+		$title    = $input->getArgument('title');
+		$listName = $input->getArgument('list');
+		$response = $this->httpClient->post(
 			'https://api.trello.com/1/cards',
 			[
 				'query' => ['key' => $_ENV['TRELLO_API_KEY'], 'token' => $_ENV['TRELLO_API_TOKEN']],
 				'json'  => [
 					'name'      => $title,
-					'idList'    => $this->getListId($input->getArgument('list')),
+					'idList'    => $this->trelloConfig['lists'][($listName)],
 					'idMembers' => $_ENV['TRELLO_MEMBER_ID'],
 				],
 			]
@@ -68,23 +71,5 @@ class CreateCommand extends Command {
 		$output->writeln('Card URL: '.$trelloCardUrl.PHP_EOL.'PR URL: '.$githubPRUrl);
 		
 		return Command::SUCCESS;
-	}
-	
-	/**
-	 * @param string $name
-	 * @return string
-	 * @throws \Exception
-	 */
-	private function getListId(string $name) : string {
-		switch($name) {
-			case 'doing':
-				return $_ENV['TRELLO_LIST_ID_DOING'];
-			case 'review':
-				return $_ENV['TRELLO_LIST_ID_REVIEW'];
-			case 'test&deploy':
-				return $_ENV['TRELLO_LIST_ID_TEST&DEPLOY'];
-		}
-		
-		throw new \Exception('Unknown list');
 	}
 }
