@@ -1,6 +1,9 @@
 <?php
 
 use createcard\commands\CreateCommand;
+use createcard\system\GitHub;
+use createcard\system\Trello;
+use GuzzleHttp\Client;
 use Symfony\Component\Console\Application;
 use Symfony\Component\Dotenv\Dotenv;
 use Symfony\Component\Yaml\Yaml;
@@ -13,7 +16,7 @@ $trelloConfig = Yaml::parseFile(__DIR__.'/trello_config.yml');
 $application = new Application();
 $application->addCommands(
 	[
-		new CreateCommand(new \GuzzleHttp\Client(), $trelloConfig)
+		new CreateCommand(new Trello(new Client(), $trelloConfig), new GitHub() )
 	]
 );
 $application->run();

@@ -5,3 +5,9 @@ lists:
 
 members:
   me: 56963071c56fe2171ee2c0b7
+
+labels:
+  backend:
+  frontend:
+  infra:
+  bug:
