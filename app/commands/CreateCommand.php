@@ -21,6 +21,7 @@ class CreateCommand extends Command {
 		parent::configure();
 		
 		$this->setDescription('Creates a trello card and a github pr with the given title and crossconnects the urls');
+		$this->addArgument('list', InputArgument::REQUIRED, 'The list of your card <doing, review, test&deploy>');
 		$this->addArgument('title', InputArgument::REQUIRED, 'The title of your card / PR');
 	}
 	
@@ -32,7 +33,7 @@ class CreateCommand extends Command {
 				'query' => ['key' => $_ENV['TRELLO_API_KEY'], 'token' => $_ENV['TRELLO_API_TOKEN']],
 				'json'  => [
 					'name'      => $title,
-					'idList'    => $_ENV['TRELLO_LIST_ID_REVIEW'],
+					'idList'    => $this->getListId($input->getArgument('list')),
 					'idMembers' => $_ENV['TRELLO_MEMBER_ID'],
 				],
 			]
@@ -67,5 +68,23 @@ class CreateCommand extends Command {
 		$output->writeln('Card URL: '.$trelloCardUrl.PHP_EOL.'PR URL: '.$githubPRUrl);
 		
 		return Command::SUCCESS;
+	}
+	
+	/**
+	 * @param string $name
+	 * @return string
+	 * @throws \Exception
+	 */
+	private function getListId(string $name) : string {
+		switch($name) {
+			case 'doing':
+				return $_ENV['TRELLO_LIST_ID_DOING'];
+			case 'review':
+				return $_ENV['TRELLO_LIST_ID_REVIEW'];
+			case 'test&deploy':
+				return $_ENV['TRELLO_LIST_ID_TEST&DEPLOY'];
+		}
+		
+		throw new \Exception('Unknown list');
 	}
 }
