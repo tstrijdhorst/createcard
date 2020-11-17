@@ -16,13 +16,26 @@ class Trello {
 	}
 	
 	/**
-	 * @param string $title
 	 * @param string $listName
-	 * @return array
+	 * @param string $title
+	 * @param array  $labelNames
+	 * @param array  $memberNames
+	 * @return array [url, id]
 	 * @throws \GuzzleHttp\Exception\GuzzleException
 	 * @throws \JsonException
 	 */
-	public function createCard(string $title, string $listName) {
+	public function createCard(string $listName, string $title, array $labelNames = [], array $memberNames = []) : array {
+		$memberNames[] = 'me';
+		$memberIds     = array_map(
+			function ($name) {
+				return $this->config['members'][$name];
+			}, $memberNames
+		);
+		
+		$labelIds = array_map(function($name) {
+			return $this->config['labels'][$name];
+		}, $labelNames);
+		
 		$response = $this->httpClient->post(
 			self::API_BASE_URL.'/cards',
 			[
@@ -30,7 +43,8 @@ class Trello {
 				'json'  => [
 					'name'      => $title,
 					'idList'    => $this->config['lists'][($listName)],
-					'idMembers' => $this->config['members']['me'],
+					'idMembers' => $memberIds,
+					'idLabels'  => $labelIds,
 				],
 			]
 		);
@@ -42,7 +56,7 @@ class Trello {
 	
 	public function attachUrlToCard(string $id, string $url): void {
 		$this->httpClient->post(
-			"https://api.trello.com/1/cards/{$id}/attachments",
+			self::API_BASE_URL."/cards/{$id}/attachments",
 			[
 				'query' => ['key' => $_ENV['TRELLO_API_KEY'], 'token' => $_ENV['TRELLO_API_TOKEN']],
 				'json'  => [
@@ -54,10 +68,68 @@ class Trello {
 	
 	public function deleteCard(string $id): void {
 		$this->httpClient->delete(
-			"https://api.trello.com/1/cards/{$id}",
+			self::API_BASE_URL."/cards/{$id}",
 			[
 				'query' => ['key' => $_ENV['TRELLO_API_KEY'], 'token' => $_ENV['TRELLO_API_TOKEN']],
 			]
 		);
+	}
+	
+	public function assignReviewer($cardId, string $reviewerName) : void {
+		$reviewerId = $this->config['members'][$reviewerName];
+		
+		if (!$this->isMemberOfCard($cardId, $reviewerId)) {
+			$this->httpClient->post(
+				self::API_BASE_URL."/cards/{$cardId}/idMembers",
+				[
+					'query' => ['key' => $_ENV['TRELLO_API_KEY'], 'token' => $_ENV['TRELLO_API_TOKEN']],
+					'json'  => [
+						'value' => $reviewerId,
+					],
+				]
+			);
+		}
+		
+		$this->httpClient->post(
+			self::API_BASE_URL."/cards/{$cardId}/actions/comments",
+			[
+				'query' => ['key' => $_ENV['TRELLO_API_KEY'], 'token' => $_ENV['TRELLO_API_TOKEN']],
+				'json'  => [
+					'text' => '@'.$this->getUsernameByMemberId($reviewerId).' please review',
+				],
+			]
+		);
+	}
+	
+	private function isMemberOfCard($cardId, $memberId) : bool {
+		$response = $this->httpClient->get(
+			self::API_BASE_URL."/cards/{$cardId}/members",
+			[
+				'query' => ['key' => $_ENV['TRELLO_API_KEY'], 'token' => $_ENV['TRELLO_API_TOKEN'], 'fields' => ['id']],
+			]
+		);
+		
+		$members = json_decode((string)$response->getBody(), true, 512, JSON_THROW_ON_ERROR);
+		
+		foreach($members as $member) {
+			if ($member['id'] === $memberId) {
+				return true;
+			}
+		}
+		
+		return false;
+	}
+	
+	private function getUsernameByMemberId($id) : string {
+		$response = $this->httpClient->get(
+			self::API_BASE_URL."/members/{$id}",
+			[
+				'query' => ['key' => $_ENV['TRELLO_API_KEY'], 'token' => $_ENV['TRELLO_API_TOKEN'], 'fields' => ['username']],
+			]
+		);
+		
+		$response = json_decode((string)$response->getBody(), true, 512, JSON_THROW_ON_ERROR);
+		
+		return $response['username'];
 	}
 }

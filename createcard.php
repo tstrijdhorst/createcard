@@ -1,6 +1,6 @@
 <?php
 
-use createcard\commands\CreateCommand;
+use createcard\commands\ReviewCommand;
 use createcard\system\GitHub;
 use createcard\system\Trello;
 use GuzzleHttp\Client;
@@ -16,7 +16,7 @@ $trelloConfig = Yaml::parseFile(__DIR__.'/trello_config.yml');
 $application = new Application();
 $application->addCommands(
 	[
-		new CreateCommand(new Trello(new Client(), $trelloConfig), new GitHub() )
+		new ReviewCommand(new Trello(new Client(), $trelloConfig), new GitHub() )
 	]
 );
 $application->run();
