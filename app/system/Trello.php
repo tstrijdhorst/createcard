@@ -24,17 +24,19 @@ class Trello {
 	 * @throws \GuzzleHttp\Exception\GuzzleException
 	 * @throws \JsonException
 	 */
-	public function createCard(string $listName, string $title, array $labelNames = [], array $memberNames = []) : array {
-		$memberNames[] = 'me';
-		$memberIds     = array_map(
+	public function createCard(string $listName, string $title, array $labelNames = [], array $memberNames = []): array {
+		$memberNames = array_merge(['me'], $memberNames);
+		$memberIds   = array_map(
 			function ($name) {
 				return $this->config['members'][$name];
 			}, $memberNames
 		);
 		
-		$labelIds = array_map(function($name) {
-			return $this->config['labels'][$name];
-		}, $labelNames);
+		$labelIds = array_map(
+			function ($name) {
+				return $this->config['labels'][$name];
+			}, $labelNames
+		);
 		
 		$response = $this->httpClient->post(
 			self::API_BASE_URL.'/cards',
@@ -75,7 +77,7 @@ class Trello {
 		);
 	}
 	
-	public function assignReviewer($cardId, string $reviewerName) : void {
+	public function assignReviewer($cardId, string $reviewerName): void {
 		$reviewerId = $this->config['members'][$reviewerName];
 		
 		if (!$this->isMemberOfCard($cardId, $reviewerId)) {
@@ -101,7 +103,7 @@ class Trello {
 		);
 	}
 	
-	private function isMemberOfCard($cardId, $memberId) : bool {
+	private function isMemberOfCard($cardId, $memberId): bool {
 		$response = $this->httpClient->get(
 			self::API_BASE_URL."/cards/{$cardId}/members",
 			[
@@ -111,7 +113,7 @@ class Trello {
 		
 		$members = json_decode((string)$response->getBody(), true, 512, JSON_THROW_ON_ERROR);
 		
-		foreach($members as $member) {
+		foreach ($members as $member) {
 			if ($member['id'] === $memberId) {
 				return true;
 			}
@@ -120,7 +122,7 @@ class Trello {
 		return false;
 	}
 	
-	private function getUsernameByMemberId($id) : string {
+	private function getUsernameByMemberId($id): string {
 		$response = $this->httpClient->get(
 			self::API_BASE_URL."/members/{$id}",
 			[
