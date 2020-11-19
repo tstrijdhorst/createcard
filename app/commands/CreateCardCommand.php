@@ -10,8 +10,8 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
-class ReviewCommand extends Command {
-	protected static $defaultName = 'review';
+class CreateCardCommand extends Command {
+	protected static $defaultName = 'create-card';
 	private Trello   $trello;
 	private GitHub   $gitHub;
 	
