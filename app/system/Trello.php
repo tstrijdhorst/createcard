@@ -18,13 +18,14 @@ class Trello {
 	/**
 	 * @param string $listName
 	 * @param string $title
+	 * @param string $description
 	 * @param array  $labelNames
 	 * @param array  $memberNames
 	 * @return array [url, id]
 	 * @throws \GuzzleHttp\Exception\GuzzleException
 	 * @throws \JsonException
 	 */
-	public function createCard(string $listName, string $title, array $labelNames = [], array $memberNames = []): array {
+	public function createCard(string $listName, string $title, string $description = '', array $labelNames = [], array $memberNames = []): array {
 		$memberNames = array_merge(['me'], $memberNames);
 		$memberIds   = array_map(
 			function ($name) {
@@ -44,6 +45,7 @@ class Trello {
 				'query' => ['key' => $_ENV['TRELLO_API_KEY'], 'token' => $_ENV['TRELLO_API_TOKEN']],
 				'json'  => [
 					'name'      => $title,
+					'desc'      => $description,
 					'idList'    => $this->config['lists'][($listName)],
 					'idMembers' => $memberIds,
 					'idLabels'  => $labelIds,

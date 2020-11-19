@@ -29,15 +29,17 @@ class ReviewCommand extends Command {
 		$this->addOption('label', 'l', InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'Labels to add to the card');
 		$this->addOption('member', 'm', InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'Members to assign to the card');
 		$this->addOption('reviewer', 'r', InputOption::VALUE_REQUIRED, 'Member to assign as reviewer');
+		$this->addOption('description', 'd', InputOption::VALUE_REQUIRED, 'Describe what you are trying to do');
 	}
 	
 	protected function execute(InputInterface $input, OutputInterface $output) {
-		$title    = $input->getArgument('title');
-		$labels   = $input->getOption('label');
-		$members  = $input->getOption('member');
-		$reviewer = $input->getOption('reviewer');
+		$title       = $input->getArgument('title');
+		$labels      = $input->getOption('label');
+		$members     = $input->getOption('member');
+		$reviewer    = $input->getOption('reviewer');
+		$description = $input->getOption('description');
 		
-		[$trelloCardUrl, $trelloCardID] = $this->trello->createCard('review', $title, $labels, $members);
+		[$trelloCardUrl, $trelloCardID] = $this->trello->createCard('review', $title, $description,$labels, $members);
 		try {
 			$githubPRUrl = $this->gitHub->createPR($title, $trelloCardUrl);
 		}
