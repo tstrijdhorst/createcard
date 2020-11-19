@@ -26,7 +26,7 @@ class Trello {
 	 * @throws \JsonException
 	 */
 	public function createCard(string $listName, string $title, string $description = '', array $labelNames = [], array $memberNames = []): array {
-		$memberNames = array_merge(['me'], $memberNames);
+		array_unshift($memberNames, 'me');
 		$memberIds   = array_map(
 			function ($name) {
 				return $this->config['members'][$name];
