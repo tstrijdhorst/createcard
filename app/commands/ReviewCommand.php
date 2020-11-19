@@ -30,16 +30,33 @@ class ReviewCommand extends Command {
 		$this->addOption('member', 'm', InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'Members to assign to the card');
 		$this->addOption('reviewer', 'r', InputOption::VALUE_REQUIRED, 'Member to assign as reviewer');
 		$this->addOption('description', 'd', InputOption::VALUE_REQUIRED, 'Describe what you are trying to do');
+		$this->addOption('description-interactive', 'i', InputOption::VALUE_NONE, 'Enter a description interactively via vim');
 	}
 	
 	protected function execute(InputInterface $input, OutputInterface $output) {
-		$title       = $input->getArgument('title');
-		$labels      = $input->getOption('label');
-		$members     = $input->getOption('member');
-		$reviewer    = $input->getOption('reviewer');
-		$description = $input->getOption('description');
+		$title                  = $input->getArgument('title');
+		$labels                 = $input->getOption('label');
+		$members                = $input->getOption('member');
+		$reviewer               = $input->getOption('reviewer');
+		$description            = $input->getOption('description');
+		$descriptionInteractive = $input->getOption('description-interactive');
 		
-		[$trelloCardUrl, $trelloCardID] = $this->trello->createCard('review', $title, $description,$labels, $members);
+		if ($description !== null && $descriptionInteractive !== null) {
+			$output->writeln('Error: cannot set a description interactively when a description has already been passed');
+			return Command::FAILURE;
+		}
+		
+		if ($descriptionInteractive) {
+			$temporaryFilePath = tempnam(sys_get_temp_dir(), 'cc_desc_');
+			exec('vim '.$temporaryFilePath. ' > `tty`');
+			$description = file_get_contents($temporaryFilePath);
+			unlink($temporaryFilePath);
+		}
+		
+		//If no description is passed, initialize it with an empty string to keep the typing right
+		$description = $description === null ? '' : $description;
+		
+		[$trelloCardUrl, $trelloCardID] = $this->trello->createCard('review', $title, $description, $labels, $members);
 		try {
 			$githubPRUrl = $this->gitHub->createPR($title, $trelloCardUrl);
 		}
