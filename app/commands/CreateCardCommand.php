@@ -25,6 +25,7 @@ class CreateCardCommand extends Command {
 		parent::configure();
 		
 		$this->setDescription('Creates a trello card and a github pr with the given title and crossconnects the urls');
+		$this->addArgument('list', InputArgument::REQUIRED, 'The list your card will be placed in <doing, review, test&deploy>');
 		$this->addArgument('title', InputArgument::REQUIRED, 'The title of your card / PR');
 		$this->addOption('label', 'l', InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'Labels to add to the card');
 		$this->addOption('member', 'm', InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'Members to assign to the card');
@@ -34,6 +35,7 @@ class CreateCardCommand extends Command {
 	}
 	
 	protected function execute(InputInterface $input, OutputInterface $output) {
+		$list                   = $input->getArgument('list');
 		$title                  = $input->getArgument('title');
 		$labels                 = $input->getOption('label');
 		$members                = $input->getOption('member');
@@ -46,9 +48,14 @@ class CreateCardCommand extends Command {
 			return Command::FAILURE;
 		}
 		
+		if ($reviewer !== null && $list !== 'review') {
+			$output->writeln('Error: cannot set the --reviewer option if list is not set to `review`');
+			return Command::FAILURE;
+		}
+		
 		if ($descriptionInteractive) {
 			$temporaryFilePath = tempnam(sys_get_temp_dir(), 'cc_desc_');
-			exec('vim '.$temporaryFilePath. ' > `tty`');
+			exec('vim '.$temporaryFilePath.' > `tty`');
 			$description = file_get_contents($temporaryFilePath);
 			unlink($temporaryFilePath);
 		}
@@ -56,7 +63,7 @@ class CreateCardCommand extends Command {
 		//If no description is passed, initialize it with an empty string to keep the typing right
 		$description = $description === null ? '' : $description;
 		
-		[$trelloCardUrl, $trelloCardID] = $this->trello->createCard('review', $title, $description, $labels, $members);
+		[$trelloCardUrl, $trelloCardID] = $this->trello->createCard($list, $title, $description, $labels, $members);
 		try {
 			$githubPRUrl = $this->gitHub->createPR($title, $trelloCardUrl);
 		}
