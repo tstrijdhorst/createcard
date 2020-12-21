@@ -11,7 +11,7 @@ members:
   bart: 574eaa275b0d81fd850e2516
   camelia: 5cf0f2db60eee135ca9cd6e9
   floris: 5e590ee5f9640a16d63de517
-  joerie: 503fd531119c5d9d7714d962
+  joeri: 503fd531119c5d9d7714d962
   leon: 5db2fea109debd2744eab310
   jasper: 5490047aa683c169073a8a4c
   heleen: 57ad854bbbb9225070c0435d
@@ -22,3 +22,4 @@ labels:
   frontend: 5683d8d3fb396fe7060be33b
   infra: 5769ab259bb5d46de44bbac2
   bug: 5683d8d3fb396fe7060be33c
+
