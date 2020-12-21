@@ -69,6 +69,11 @@ class CreateCardCommand extends Command {
 		}
 		catch (\Exception $e) {
 			$this->trello->deleteCard($trelloCardID);
+			
+			if ($descriptionInteractive) {
+				$output->writeln('Description from interactive: '.PHP_EOL.$description);
+			}
+			
 			throw $e;
 		}
 		
