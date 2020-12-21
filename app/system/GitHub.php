@@ -10,6 +10,7 @@ class GitHub {
 	 * @throws \Exception
 	 */
 	public function createPR(string $title, string $body): string {
+		exec('git push');
 		exec('gh pr create --title '.escapeshellarg($title).' --body '.escapeshellarg($body).' 2>&1', $output, $exitCode);
 		
 		if ($exitCode !== 0) {
