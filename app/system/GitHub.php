@@ -2,6 +2,9 @@
 
 namespace createcard\system;
 
+use SRL\Builder;
+use SRL\SRL;
+
 class GitHub {
 	/**
 	 * @param string $title
@@ -18,5 +21,33 @@ class GitHub {
 		}
 		
 		return $output[0];
+	}
+	
+	/**
+	 * @param string $branchName
+	 * @return string
+	 */
+	public function formatPRUrlFromBranchName(string $branchName): string {
+		exec('git remote -v', $output);
+		
+		$query   = SRL::startsWith()
+		              ->literally("origin\tgit@github.com:")
+		              ->capture(
+			              function (Builder $query) {
+				              $query->any()->onceOrMore();
+			              }, 'username'
+		              )
+		              ->literally('/')
+		              ->capture(
+			              function (Builder $query) {
+				              $query->any()->onceOrMore();
+			              }, 'repository'
+		              )
+		              ->literally('.git');
+		$matches = $query->getMatches($output[0]);
+		
+		$username   = $matches[0]->get('username');
+		$repository = $matches[0]->get('repository');
+		return 'https://github.com/'.$username.'/'.$repository.'/pull/'.$branchName;
 	}
 }

@@ -64,8 +64,13 @@ class CreateCardCommand extends Command {
 		$description = $description === null ? '' : $description;
 		
 		[$trelloCardUrl, $trelloCardID] = $this->trello->createCard($list, $title, $description, $labels, $members);
+		
+		//@todo fetch branch name
+		$githubPRUrl = $this->gitHub->formatPRUrlFromBranchName(null);
+		$this->trello->attachUrlToCard($trelloCardID, $githubPRUrl);
+		
 		try {
-			$githubPRUrl = $this->gitHub->createPR($title, $trelloCardUrl);
+			$this->gitHub->createPR($title, $trelloCardUrl);
 		}
 		catch (\Exception $e) {
 			$this->trello->deleteCard($trelloCardID);
@@ -76,8 +81,6 @@ class CreateCardCommand extends Command {
 			
 			throw $e;
 		}
-		
-		$this->trello->attachUrlToCard($trelloCardID, $githubPRUrl);
 		
 		if ($reviewer !== null) {
 			$this->trello->assignReviewer($trelloCardID, $reviewer);
