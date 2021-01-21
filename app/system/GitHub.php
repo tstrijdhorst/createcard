@@ -17,6 +17,8 @@ class GitHub {
 			throw new \Exception('Something went wrong while trying to make the PR. Output of the command: '.PHP_EOL.implode(PHP_EOL, $output));
 		}
 		
-		return $output[0];
+		preg_match('%(?<PRUrl>https://github.com/.*/.*/pull/[0-9]+)%', $output[0], $matches);
+		
+		return $matches['PRUrl'];
 	}
 }
