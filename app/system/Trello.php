@@ -7,13 +7,11 @@ use Symfony\Component\Yaml\Yaml;
 
 class Trello {
 	private Client $httpClient;
-	private array  $config;
 	
 	private const API_BASE_URL = 'https://api.trello.com/1';
 	
-	public function __construct(Client $httpClient, array $config) {
+	public function __construct(Client $httpClient) {
 		$this->httpClient = $httpClient;
-		$this->config     = $config;
 	}
 	
 	/**
@@ -35,7 +33,7 @@ class Trello {
 		
 		$labelIds = array_map(
 			function ($name) {
-				return $this->config['labels'][$name];
+				return $this->getLabelIdByNameOrAlias($name);
 			}, $labelNames
 		);
 		
@@ -166,6 +164,24 @@ class Trello {
 		return $memberIds[$usernameOrAlias];
 	}
 	
+	public function getLabelIdByNameOrAlias(string $labelNameOrAlias) : string {
+		$aliases = Yaml::parseFile(__DIR__.'/../../trello_alias.yml');
+		
+		if (isset($aliases['labels'][$labelNameOrAlias])) {
+			$labelNameOrAlias = $aliases['labels'][$labelNameOrAlias];
+		}
+		
+		$labelNameOrAlias = strtolower($labelNameOrAlias);
+		
+		$labelIds = $this->getBoardLabels($_SERVER['TRELLO_BOARD_ID']);
+		
+		if (!isset($labelIds[$labelNameOrAlias])) {
+			throw new \Exception('Labelname or alias not found: '.$labelNameOrAlias);
+		}
+		
+		return $labelIds[$labelNameOrAlias];
+	}
+	
 	private function getUsernameByMemberId($id): string {
 		$response = $this->httpClient->get(
 			self::API_BASE_URL."/members/{$id}",
@@ -177,5 +193,31 @@ class Trello {
 		$response = json_decode((string)$response->getBody(), true, 512, JSON_THROW_ON_ERROR);
 		
 		return $response['username'];
+	}
+	
+	/**
+	 * @param string $boardId
+	 * @return array [labelName => id], @note labelName has been made lowercase
+	 * @throws \GuzzleHttp\Exception\GuzzleException
+	 * @throws \JsonException
+	 */
+	private function getBoardLabels(string $boardId) {
+		$response = $this->httpClient->get(
+			self::API_BASE_URL."/boards/{$boardId}",
+			[
+				'query' => [
+					'key' => $_ENV['TRELLO_API_KEY'], 'token' => $_ENV['TRELLO_API_TOKEN'],
+					'labels' => 'all', 'label_fields' => ['name', 'id']
+				],
+			]
+		);
+		
+		$boardInfo = json_decode((string)$response->getBody(), true, 512, JSON_THROW_ON_ERROR);
+		
+		return array_reduce(
+			$boardInfo['labels'], function (array $carry, array $label) {
+			return array_merge($carry, [strtolower($label['name']) => $label['id']]);
+		}, []
+		);
 	}
 }

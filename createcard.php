@@ -11,10 +11,8 @@ use Symfony\Component\Yaml\Yaml;
 require_once __DIR__.'/vendor/autoload.php';
 
 (new Dotenv())->load(__DIR__.'/.env');
-$trelloConfig = Yaml::parseFile(__DIR__.'/trello_config.yml');
-
 $application = new Application();
-$trello      = new Trello(new Client(), $trelloConfig);
+$trello      = new Trello(new Client());
 
 $gitHub      = new GitHub();
 $application->addCommands(
