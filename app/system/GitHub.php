@@ -10,7 +10,7 @@ class GitHub {
 	 * @throws \Exception
 	 */
 	public function createPR(string $title, string $body): string {
-		exec('git push', $output, $exitCode);
+		exec('git push 2>&1', $output, $exitCode);
 		
 		$output = implode(PHP_EOL, $output);
 		
