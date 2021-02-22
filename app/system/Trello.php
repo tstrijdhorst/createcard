@@ -3,16 +3,17 @@
 namespace createcard\system;
 
 use GuzzleHttp\Client;
+use Symfony\Component\Yaml\Yaml;
 
 class Trello {
 	private Client $httpClient;
-	private array  $config;
 	
 	private const API_BASE_URL = 'https://api.trello.com/1';
+	private array $aliases;
 	
-	public function __construct(Client $httpClient, array $config) {
+	public function __construct(Client $httpClient, array $aliases) {
 		$this->httpClient = $httpClient;
-		$this->config     = $config;
+		$this->aliases    = $aliases;
 	}
 	
 	/**
@@ -26,18 +27,22 @@ class Trello {
 	 * @throws \JsonException
 	 */
 	public function createCard(string $listName, string $title, string $description = '', array $labelNames = [], array $memberNames = []): array {
-		array_unshift($memberNames, 'me');
-		$memberIds   = array_map(
+		$memberIds = array_map(
 			function ($name) {
-				return $this->config['members'][$name];
+				return $this->getMemberIdByUsernameOrAlias($name);
 			}, $memberNames
 		);
 		
 		$labelIds = array_map(
 			function ($name) {
-				return $this->config['labels'][$name];
+				return $this->getLabelIdByNameOrAlias($name);
 			}, $labelNames
 		);
+		
+		$listId = $this->getListIdByNameOrAlias($listName);
+		
+		//Add the creator of this card as the first member
+		array_unshift($memberIds, $_ENV['TRELLO_MEMBER_ID']);
 		
 		$response = $this->httpClient->post(
 			self::API_BASE_URL.'/cards',
@@ -46,7 +51,7 @@ class Trello {
 				'json'  => [
 					'name'      => $title,
 					'desc'      => $description,
-					'idList'    => $this->config['lists'][($listName)],
+					'idList'    => $listId,
 					'idMembers' => $memberIds,
 					'idLabels'  => $labelIds,
 				],
@@ -80,7 +85,7 @@ class Trello {
 	}
 	
 	public function assignReviewer($cardId, string $reviewerName): void {
-		$reviewerId = $this->config['members'][$reviewerName];
+		$reviewerId = $this->getMemberIdByUsernameOrAlias($reviewerName);
 		
 		if (!$this->isMemberOfCard($cardId, $reviewerId)) {
 			$this->httpClient->post(
@@ -105,7 +110,7 @@ class Trello {
 		);
 	}
 	
-	private function isMemberOfCard($cardId, $memberId): bool {
+	private function isMemberOfCard(string $cardId, string $memberId): bool {
 		$response = $this->httpClient->get(
 			self::API_BASE_URL."/cards/{$cardId}/members",
 			[
@@ -135,5 +140,120 @@ class Trello {
 		$response = json_decode((string)$response->getBody(), true, 512, JSON_THROW_ON_ERROR);
 		
 		return $response['username'];
+	}
+	
+	/**
+	 * @param string $usernameOrAlias
+	 * @return string
+	 * @throws \JsonException
+	 */
+	public function getMemberIdByUsernameOrAlias(string $usernameOrAlias): string {
+		if (isset($this->aliases['members'][$usernameOrAlias])) {
+			$usernameOrAlias = $this->aliases['members'][$usernameOrAlias];
+		}
+		
+		$memberIds = $this->getBoardMembers($_SERVER['TRELLO_BOARD_ID']);
+		
+		if (!isset($memberIds[$usernameOrAlias])) {
+			throw new \Exception('Username or alias not found: '.$usernameOrAlias);
+		}
+		
+		return $memberIds[$usernameOrAlias];
+	}
+	
+	public function getLabelIdByNameOrAlias(string $labelNameOrAlias): string {
+		if (isset($this->aliases['labels'][$labelNameOrAlias])) {
+			$labelNameOrAlias = $this->aliases['labels'][$labelNameOrAlias];
+		}
+		
+		$labelNameOrAlias = strtolower($labelNameOrAlias);
+		
+		$labelIds = $this->getBoardLabels($_SERVER['TRELLO_BOARD_ID']);
+		
+		if (!isset($labelIds[$labelNameOrAlias])) {
+			throw new \Exception('Labelname or alias not found: '.$labelNameOrAlias);
+		}
+		
+		return $labelIds[$labelNameOrAlias];
+	}
+	
+	private function getListIdByNameOrAlias(string $listNameOrAlias): string {
+		if (isset($this->aliases['labels'][$listNameOrAlias])) {
+			$listNameOrAlias = $this->aliases['labels'][$listNameOrAlias];
+		}
+		
+		$listNameOrAlias = strtolower($listNameOrAlias);
+		
+		$listIds = $this->getBoardLists($_SERVER['TRELLO_BOARD_ID']);
+		
+		if (!isset($listIds[$listNameOrAlias])) {
+			throw new \Exception('Labelname or alias not found: '.$listNameOrAlias);
+		}
+		
+		return $listIds[$listNameOrAlias];
+	}
+	
+	public function getBoardMembers(string $boardId): array {
+		$response = $this->httpClient->get(
+			self::API_BASE_URL."/boards/{$boardId}/memberships",
+			[
+				'query' => [
+					'key' => $_ENV['TRELLO_API_KEY'], 'token' => $_ENV['TRELLO_API_TOKEN'], 'member' => 'true', 'member_fields' => ['username']],
+			]
+		);
+		
+		$boardInfo = json_decode((string)$response->getBody(), true, 512, JSON_THROW_ON_ERROR);
+		
+		return array_reduce(
+			$boardInfo, function (array $carry, array $memberInfo) {
+			return array_merge($carry, [strtolower($memberInfo['member']['username']) => $memberInfo['member']['id']]);
+		}, []
+		);
+	}
+	
+	/**
+	 * @param string $boardId
+	 * @return array [labelName => id], @note labelName has been made lowercase
+	 * @throws \GuzzleHttp\Exception\GuzzleException
+	 * @throws \JsonException
+	 */
+	private function getBoardLabels(string $boardId) {
+		$response = $this->httpClient->get(
+			self::API_BASE_URL."/boards/{$boardId}",
+			[
+				'query' => [
+					'key'    => $_ENV['TRELLO_API_KEY'], 'token' => $_ENV['TRELLO_API_TOKEN'],
+					'labels' => 'all', 'label_fields' => ['name', 'id'],
+				],
+			]
+		);
+		
+		$boardInfo = json_decode((string)$response->getBody(), true, 512, JSON_THROW_ON_ERROR);
+		
+		return array_reduce(
+			$boardInfo['labels'], function (array $carry, array $label) {
+			return array_merge($carry, [strtolower($label['name']) => $label['id']]);
+		}, []
+		);
+	}
+	
+	private function getBoardLists(string $boardId): array {
+		$response = $this->httpClient->get(
+			self::API_BASE_URL."/boards/{$boardId}",
+			[
+				'query' => [
+					'key'   => $_ENV['TRELLO_API_KEY'], 'token' => $_ENV['TRELLO_API_TOKEN'],
+					'lists' => 'open', 'list_fields' => ['id', 'name'],
+				],
+			]
+		);
+		
+		$boardInfo = json_decode((string)$response->getBody(), true, 512, JSON_THROW_ON_ERROR);
+		
+		return array_reduce(
+			$boardInfo['lists'], function (array $carry, array $listInfo) {
+			return array_merge($carry, [strtolower($listInfo['name']) => $listInfo['id']]);
+		}, []
+		);
 	}
 }

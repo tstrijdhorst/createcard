@@ -10,17 +10,26 @@ class GitHub {
 	 * @throws \Exception
 	 */
 	public function createPR(string $title, string $body): string {
-		exec('git push');
-		exec('gh pr create --title '.escapeshellarg($title).' --body '.escapeshellarg($body).' 2>&1', $output, $exitCode);
+		exec('git push 2>&1', $output, $exitCode);
+		
+		$output = implode(PHP_EOL, $output);
 		
 		if ($exitCode !== 0) {
-			throw new \Exception('Something went wrong while trying to make the PR. Output of the command: '.PHP_EOL.implode(PHP_EOL, $output));
+			throw new \Exception('Something went wrong while trying to push to the server. Output of the command: '.PHP_EOL.$output);
 		}
 		
-		preg_match('%(?<PRUrl>https://github.com/.*/.*/pull/[0-9]+)%', $output[0], $matches);
+		exec('gh pr create --title '.escapeshellarg($title).' --body '.escapeshellarg($body).' 2>&1', $output, $exitCode);
+		
+		$output = implode(PHP_EOL, $output);
+		
+		if ($exitCode !== 0) {
+			throw new \Exception('Something went wrong while trying to make the PR. Output of the command: '.PHP_EOL.$output);
+		}
+		
+		preg_match('%(?<PRUrl>https://github.com/.*/.*/pull/[0-9]+)%', $output, $matches);
 		
 		if (!isset($matches['PRUrl'])) {
-			throw new \Exception('Something went wrong while trying to make the PR. Output of the command: '.PHP_EOL.implode(PHP_EOL, $output));
+			throw new \Exception('Something went wrong while trying to make the PR. Output of the command: '.PHP_EOL.$output);
 		}
 		
 		return $matches['PRUrl'];
