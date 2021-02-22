@@ -121,7 +121,7 @@ class Trello {
 		
 		return array_reduce(
 			$boardInfo, function (array $carry, array $memberInfo) {
-			return array_merge($carry, [$memberInfo['member']['username'] => $memberInfo['member']['id']]);
+			return array_merge($carry, [strtolower($memberInfo['member']['username']) => $memberInfo['member']['id']]);
 		}, []
 		);
 	}
