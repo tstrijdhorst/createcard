@@ -37,6 +37,8 @@ class Trello {
 			}, $labelNames
 		);
 		
+		$listId = $this->getListIdByNameOrAlias($listName);
+		
 		//Add the creator of this card as the first member
 		array_unshift($memberIds, $_ENV['TRELLO_MEMBER_ID']);
 		
@@ -47,7 +49,7 @@ class Trello {
 				'json'  => [
 					'name'      => $title,
 					'desc'      => $description,
-					'idList'    => $this->config['lists'][($listName)],
+					'idList'    => $listId,
 					'idMembers' => $memberIds,
 					'idLabels'  => $labelIds,
 				],
@@ -124,6 +126,26 @@ class Trello {
 		);
 	}
 	
+	private function getBoardLists(string $boardId): array {
+		$response = $this->httpClient->get(
+			self::API_BASE_URL."/boards/{$boardId}",
+			[
+				'query' => [
+					'key'   => $_ENV['TRELLO_API_KEY'], 'token' => $_ENV['TRELLO_API_TOKEN'],
+					'lists' => 'open', 'list_fields' => ['id', 'name'],
+				],
+			]
+		);
+		
+		$boardInfo = json_decode((string)$response->getBody(), true, 512, JSON_THROW_ON_ERROR);
+		
+		return array_reduce(
+			$boardInfo['lists'], function (array $carry, array $listInfo) {
+			return array_merge($carry, [strtolower($listInfo['name']) => $listInfo['id']]);
+		}, []
+		);
+	}
+	
 	private function isMemberOfCard(string $cardId, string $memberId): bool {
 		$response = $this->httpClient->get(
 			self::API_BASE_URL."/cards/{$cardId}/members",
@@ -164,7 +186,7 @@ class Trello {
 		return $memberIds[$usernameOrAlias];
 	}
 	
-	public function getLabelIdByNameOrAlias(string $labelNameOrAlias) : string {
+	public function getLabelIdByNameOrAlias(string $labelNameOrAlias): string {
 		$aliases = Yaml::parseFile(__DIR__.'/../../trello_alias.yml');
 		
 		if (isset($aliases['labels'][$labelNameOrAlias])) {
@@ -182,6 +204,50 @@ class Trello {
 		return $labelIds[$labelNameOrAlias];
 	}
 	
+	/**
+	 * @param string $boardId
+	 * @return array [labelName => id], @note labelName has been made lowercase
+	 * @throws \GuzzleHttp\Exception\GuzzleException
+	 * @throws \JsonException
+	 */
+	private function getBoardLabels(string $boardId) {
+		$response = $this->httpClient->get(
+			self::API_BASE_URL."/boards/{$boardId}",
+			[
+				'query' => [
+					'key'    => $_ENV['TRELLO_API_KEY'], 'token' => $_ENV['TRELLO_API_TOKEN'],
+					'labels' => 'all', 'label_fields' => ['name', 'id'],
+				],
+			]
+		);
+		
+		$boardInfo = json_decode((string)$response->getBody(), true, 512, JSON_THROW_ON_ERROR);
+		
+		return array_reduce(
+			$boardInfo['labels'], function (array $carry, array $label) {
+			return array_merge($carry, [strtolower($label['name']) => $label['id']]);
+		}, []
+		);
+	}
+	
+	public function getListIdByNameOrAlias(string $listNameOrAlias): string {
+		$aliases = Yaml::parseFile(__DIR__.'/../../trello_alias.yml');
+		
+		if (isset($aliases['labels'][$listNameOrAlias])) {
+			$listNameOrAlias = $aliases['labels'][$listNameOrAlias];
+		}
+		
+		$listNameOrAlias = strtolower($listNameOrAlias);
+		
+		$listIds = $this->getBoardLists($_SERVER['TRELLO_BOARD_ID']);
+		
+		if (!isset($listIds[$listNameOrAlias])) {
+			throw new \Exception('Labelname or alias not found: '.$listNameOrAlias);
+		}
+		
+		return $listIds[$listNameOrAlias];
+	}
+	
 	private function getUsernameByMemberId($id): string {
 		$response = $this->httpClient->get(
 			self::API_BASE_URL."/members/{$id}",
@@ -195,29 +261,4 @@ class Trello {
 		return $response['username'];
 	}
 	
-	/**
-	 * @param string $boardId
-	 * @return array [labelName => id], @note labelName has been made lowercase
-	 * @throws \GuzzleHttp\Exception\GuzzleException
-	 * @throws \JsonException
-	 */
-	private function getBoardLabels(string $boardId) {
-		$response = $this->httpClient->get(
-			self::API_BASE_URL."/boards/{$boardId}",
-			[
-				'query' => [
-					'key' => $_ENV['TRELLO_API_KEY'], 'token' => $_ENV['TRELLO_API_TOKEN'],
-					'labels' => 'all', 'label_fields' => ['name', 'id']
-				],
-			]
-		);
-		
-		$boardInfo = json_decode((string)$response->getBody(), true, 512, JSON_THROW_ON_ERROR);
-		
-		return array_reduce(
-			$boardInfo['labels'], function (array $carry, array $label) {
-			return array_merge($carry, [strtolower($label['name']) => $label['id']]);
-		}, []
-		);
-	}
 }
