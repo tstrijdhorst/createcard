@@ -14,9 +14,12 @@ require_once __DIR__.'/vendor/autoload.php';
 $trelloConfig = Yaml::parseFile(__DIR__.'/trello_config.yml');
 
 $application = new Application();
+$trello      = new Trello(new Client(), $trelloConfig);
+
+$gitHub      = new GitHub();
 $application->addCommands(
 	[
-		new CreateCardCommand(new Trello(new Client(), $trelloConfig), new GitHub() )
+		new CreateCardCommand($trello, $gitHub),
 	]
 );
 $application->run();

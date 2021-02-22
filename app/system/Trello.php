@@ -3,6 +3,7 @@
 namespace createcard\system;
 
 use GuzzleHttp\Client;
+use Symfony\Component\Yaml\Yaml;
 
 class Trello {
 	private Client $httpClient;
@@ -26,10 +27,9 @@ class Trello {
 	 * @throws \JsonException
 	 */
 	public function createCard(string $listName, string $title, string $description = '', array $labelNames = [], array $memberNames = []): array {
-		array_unshift($memberNames, 'me');
-		$memberIds   = array_map(
+		$memberIds = array_map(
 			function ($name) {
-				return $this->config['members'][$name];
+				return $this->getMemberIdByUsernameOrAlias($name);
 			}, $memberNames
 		);
 		
@@ -38,6 +38,9 @@ class Trello {
 				return $this->config['labels'][$name];
 			}, $labelNames
 		);
+		
+		//Add the creator of this card as the first member
+		array_unshift($memberIds, $_ENV['TRELLO_MEMBER_ID']);
 		
 		$response = $this->httpClient->post(
 			self::API_BASE_URL.'/cards',
@@ -80,7 +83,7 @@ class Trello {
 	}
 	
 	public function assignReviewer($cardId, string $reviewerName): void {
-		$reviewerId = $this->config['members'][$reviewerName];
+		$reviewerId = $this->getMemberIdByUsernameOrAlias($reviewerName);
 		
 		if (!$this->isMemberOfCard($cardId, $reviewerId)) {
 			$this->httpClient->post(
@@ -105,7 +108,25 @@ class Trello {
 		);
 	}
 	
-	private function isMemberOfCard($cardId, $memberId): bool {
+	public function getBoardMembers(string $boardId): array {
+		$response = $this->httpClient->get(
+			self::API_BASE_URL."/boards/{$boardId}/memberships",
+			[
+				'query' => [
+					'key' => $_ENV['TRELLO_API_KEY'], 'token' => $_ENV['TRELLO_API_TOKEN'], 'member' => 'true', 'member_fields' => ['username']],
+			]
+		);
+		
+		$boardInfo = json_decode((string)$response->getBody(), true, 512, JSON_THROW_ON_ERROR);
+		
+		return array_reduce(
+			$boardInfo, function (array $carry, array $memberInfo) {
+			return array_merge($carry, [$memberInfo['member']['username'] => $memberInfo['member']['id']]);
+		}, []
+		);
+	}
+	
+	private function isMemberOfCard(string $cardId, string $memberId): bool {
 		$response = $this->httpClient->get(
 			self::API_BASE_URL."/cards/{$cardId}/members",
 			[
@@ -122,6 +143,27 @@ class Trello {
 		}
 		
 		return false;
+	}
+	
+	/**
+	 * @param string $usernameOrAlias
+	 * @return string
+	 * @throws \JsonException
+	 */
+	public function getMemberIdByUsernameOrAlias(string $usernameOrAlias): string {
+		$aliases = Yaml::parseFile(__DIR__.'/../../trello_alias.yml');
+		
+		if (isset($aliases['members'][$usernameOrAlias])) {
+			$usernameOrAlias = $aliases['members'][$usernameOrAlias];
+		}
+		
+		$memberIds = $this->getBoardMembers($_SERVER['TRELLO_BOARD_ID']);
+		
+		if (!isset($memberIds[$usernameOrAlias])) {
+			throw new \Exception('Username or alias not found: '.$usernameOrAlias);
+		}
+		
+		return $memberIds[$usernameOrAlias];
 	}
 	
 	private function getUsernameByMemberId($id): string {
