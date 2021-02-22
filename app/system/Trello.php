@@ -9,9 +9,11 @@ class Trello {
 	private Client $httpClient;
 	
 	private const API_BASE_URL = 'https://api.trello.com/1';
+	private array $aliases;
 	
-	public function __construct(Client $httpClient) {
+	public function __construct(Client $httpClient, array $aliases) {
 		$this->httpClient = $httpClient;
+		$this->aliases    = $aliases;
 	}
 	
 	/**
@@ -146,10 +148,8 @@ class Trello {
 	 * @throws \JsonException
 	 */
 	public function getMemberIdByUsernameOrAlias(string $usernameOrAlias): string {
-		$aliases = Yaml::parseFile(__DIR__.'/../../trello_alias.yml');
-		
-		if (isset($aliases['members'][$usernameOrAlias])) {
-			$usernameOrAlias = $aliases['members'][$usernameOrAlias];
+		if (isset($this->aliases['members'][$usernameOrAlias])) {
+			$usernameOrAlias = $this->aliases['members'][$usernameOrAlias];
 		}
 		
 		$memberIds = $this->getBoardMembers($_SERVER['TRELLO_BOARD_ID']);
@@ -162,10 +162,8 @@ class Trello {
 	}
 	
 	public function getLabelIdByNameOrAlias(string $labelNameOrAlias): string {
-		$aliases = Yaml::parseFile(__DIR__.'/../../trello_alias.yml');
-		
-		if (isset($aliases['labels'][$labelNameOrAlias])) {
-			$labelNameOrAlias = $aliases['labels'][$labelNameOrAlias];
+		if (isset($this->aliases['labels'][$labelNameOrAlias])) {
+			$labelNameOrAlias = $this->aliases['labels'][$labelNameOrAlias];
 		}
 		
 		$labelNameOrAlias = strtolower($labelNameOrAlias);
@@ -180,10 +178,8 @@ class Trello {
 	}
 	
 	private function getListIdByNameOrAlias(string $listNameOrAlias): string {
-		$aliases = Yaml::parseFile(__DIR__.'/../../trello_alias.yml');
-		
-		if (isset($aliases['labels'][$listNameOrAlias])) {
-			$listNameOrAlias = $aliases['labels'][$listNameOrAlias];
+		if (isset($this->aliases['labels'][$listNameOrAlias])) {
+			$listNameOrAlias = $this->aliases['labels'][$listNameOrAlias];
 		}
 		
 		$listNameOrAlias = strtolower($listNameOrAlias);
