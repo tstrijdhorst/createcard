@@ -108,44 +108,6 @@ class Trello {
 		);
 	}
 	
-	public function getBoardMembers(string $boardId): array {
-		$response = $this->httpClient->get(
-			self::API_BASE_URL."/boards/{$boardId}/memberships",
-			[
-				'query' => [
-					'key' => $_ENV['TRELLO_API_KEY'], 'token' => $_ENV['TRELLO_API_TOKEN'], 'member' => 'true', 'member_fields' => ['username']],
-			]
-		);
-		
-		$boardInfo = json_decode((string)$response->getBody(), true, 512, JSON_THROW_ON_ERROR);
-		
-		return array_reduce(
-			$boardInfo, function (array $carry, array $memberInfo) {
-			return array_merge($carry, [strtolower($memberInfo['member']['username']) => $memberInfo['member']['id']]);
-		}, []
-		);
-	}
-	
-	private function getBoardLists(string $boardId): array {
-		$response = $this->httpClient->get(
-			self::API_BASE_URL."/boards/{$boardId}",
-			[
-				'query' => [
-					'key'   => $_ENV['TRELLO_API_KEY'], 'token' => $_ENV['TRELLO_API_TOKEN'],
-					'lists' => 'open', 'list_fields' => ['id', 'name'],
-				],
-			]
-		);
-		
-		$boardInfo = json_decode((string)$response->getBody(), true, 512, JSON_THROW_ON_ERROR);
-		
-		return array_reduce(
-			$boardInfo['lists'], function (array $carry, array $listInfo) {
-			return array_merge($carry, [strtolower($listInfo['name']) => $listInfo['id']]);
-		}, []
-		);
-	}
-	
 	private function isMemberOfCard(string $cardId, string $memberId): bool {
 		$response = $this->httpClient->get(
 			self::API_BASE_URL."/cards/{$cardId}/members",
@@ -163,6 +125,19 @@ class Trello {
 		}
 		
 		return false;
+	}
+	
+	private function getUsernameByMemberId($id): string {
+		$response = $this->httpClient->get(
+			self::API_BASE_URL."/members/{$id}",
+			[
+				'query' => ['key' => $_ENV['TRELLO_API_KEY'], 'token' => $_ENV['TRELLO_API_TOKEN'], 'fields' => ['username']],
+			]
+		);
+		
+		$response = json_decode((string)$response->getBody(), true, 512, JSON_THROW_ON_ERROR);
+		
+		return $response['username'];
 	}
 	
 	/**
@@ -204,6 +179,42 @@ class Trello {
 		return $labelIds[$labelNameOrAlias];
 	}
 	
+	private function getListIdByNameOrAlias(string $listNameOrAlias): string {
+		$aliases = Yaml::parseFile(__DIR__.'/../../trello_alias.yml');
+		
+		if (isset($aliases['labels'][$listNameOrAlias])) {
+			$listNameOrAlias = $aliases['labels'][$listNameOrAlias];
+		}
+		
+		$listNameOrAlias = strtolower($listNameOrAlias);
+		
+		$listIds = $this->getBoardLists($_SERVER['TRELLO_BOARD_ID']);
+		
+		if (!isset($listIds[$listNameOrAlias])) {
+			throw new \Exception('Labelname or alias not found: '.$listNameOrAlias);
+		}
+		
+		return $listIds[$listNameOrAlias];
+	}
+	
+	public function getBoardMembers(string $boardId): array {
+		$response = $this->httpClient->get(
+			self::API_BASE_URL."/boards/{$boardId}/memberships",
+			[
+				'query' => [
+					'key' => $_ENV['TRELLO_API_KEY'], 'token' => $_ENV['TRELLO_API_TOKEN'], 'member' => 'true', 'member_fields' => ['username']],
+			]
+		);
+		
+		$boardInfo = json_decode((string)$response->getBody(), true, 512, JSON_THROW_ON_ERROR);
+		
+		return array_reduce(
+			$boardInfo, function (array $carry, array $memberInfo) {
+			return array_merge($carry, [strtolower($memberInfo['member']['username']) => $memberInfo['member']['id']]);
+		}, []
+		);
+	}
+	
 	/**
 	 * @param string $boardId
 	 * @return array [labelName => id], @note labelName has been made lowercase
@@ -230,35 +241,23 @@ class Trello {
 		);
 	}
 	
-	public function getListIdByNameOrAlias(string $listNameOrAlias): string {
-		$aliases = Yaml::parseFile(__DIR__.'/../../trello_alias.yml');
-		
-		if (isset($aliases['labels'][$listNameOrAlias])) {
-			$listNameOrAlias = $aliases['labels'][$listNameOrAlias];
-		}
-		
-		$listNameOrAlias = strtolower($listNameOrAlias);
-		
-		$listIds = $this->getBoardLists($_SERVER['TRELLO_BOARD_ID']);
-		
-		if (!isset($listIds[$listNameOrAlias])) {
-			throw new \Exception('Labelname or alias not found: '.$listNameOrAlias);
-		}
-		
-		return $listIds[$listNameOrAlias];
-	}
-	
-	private function getUsernameByMemberId($id): string {
+	private function getBoardLists(string $boardId): array {
 		$response = $this->httpClient->get(
-			self::API_BASE_URL."/members/{$id}",
+			self::API_BASE_URL."/boards/{$boardId}",
 			[
-				'query' => ['key' => $_ENV['TRELLO_API_KEY'], 'token' => $_ENV['TRELLO_API_TOKEN'], 'fields' => ['username']],
+				'query' => [
+					'key'   => $_ENV['TRELLO_API_KEY'], 'token' => $_ENV['TRELLO_API_TOKEN'],
+					'lists' => 'open', 'list_fields' => ['id', 'name'],
+				],
 			]
 		);
 		
-		$response = json_decode((string)$response->getBody(), true, 512, JSON_THROW_ON_ERROR);
+		$boardInfo = json_decode((string)$response->getBody(), true, 512, JSON_THROW_ON_ERROR);
 		
-		return $response['username'];
+		return array_reduce(
+			$boardInfo['lists'], function (array $carry, array $listInfo) {
+			return array_merge($carry, [strtolower($listInfo['name']) => $listInfo['id']]);
+		}, []
+		);
 	}
-	
 }
