@@ -27,6 +27,9 @@ class Trello {
 	 * @throws \JsonException
 	 */
 	public function createCard(string $listName, string $title, string $description = '', array $labelNames = [], array $memberNames = []): array {
+		//Add the creator of this card as the first member
+		array_unshift($memberNames, $_ENV['TRELLO_USER_NAME']);
+		
 		$memberIds = array_map(
 			function ($name) {
 				return $this->getMemberIdByUsernameOrAlias($name);
@@ -40,9 +43,6 @@ class Trello {
 		);
 		
 		$listId = $this->getListIdByNameOrAlias($listName);
-		
-		//Add the creator of this card as the first member
-		array_unshift($memberIds, $_ENV['TRELLO_MEMBER_ID']);
 		
 		$response = $this->httpClient->post(
 			self::API_BASE_URL.'/cards',
