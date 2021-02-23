@@ -147,7 +147,7 @@ class Trello {
 	 * @return string
 	 * @throws \JsonException
 	 */
-	public function getMemberIdByUsernameOrAlias(string $usernameOrAlias): string {
+	private function getMemberIdByUsernameOrAlias(string $usernameOrAlias): string {
 		if (isset($this->aliases['members'][$usernameOrAlias])) {
 			$usernameOrAlias = $this->aliases['members'][$usernameOrAlias];
 		}
@@ -161,7 +161,7 @@ class Trello {
 		return $memberIds[$usernameOrAlias];
 	}
 	
-	public function getLabelIdByNameOrAlias(string $labelNameOrAlias): string {
+	private function getLabelIdByNameOrAlias(string $labelNameOrAlias): string {
 		if (isset($this->aliases['labels'][$labelNameOrAlias])) {
 			$labelNameOrAlias = $this->aliases['labels'][$labelNameOrAlias];
 		}
@@ -193,7 +193,7 @@ class Trello {
 		return $listIds[$listNameOrAlias];
 	}
 	
-	public function getBoardMembers(string $boardId): array {
+	private function getBoardMembers(string $boardId): array {
 		$response = $this->httpClient->get(
 			self::API_BASE_URL."/boards/{$boardId}/memberships",
 			[
