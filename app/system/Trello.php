@@ -27,14 +27,14 @@ class Trello {
 	 * @throws \JsonException
 	 */
 	public function createCard(string $listName, string $title, string $description = '', array $labelNames = [], array $memberNames = []): array {
-		//Add the creator of this card as the first member
-		array_unshift($memberNames, $_ENV['TRELLO_USER_NAME']);
-		
 		$memberIds = array_map(
 			function ($name) {
 				return $this->getMemberIdByUsernameOrAlias($name);
 			}, $memberNames
 		);
+		
+		//Add the creator of this card as the first member
+		array_unshift($memberIds, $this->getMemberIdFromToken());
 		
 		$labelIds = array_map(
 			function ($name) {
@@ -127,6 +127,19 @@ class Trello {
 		}
 		
 		return false;
+	}
+	
+	private function getMemberIdFromToken() : string {
+		$response = $this->httpClient->get(
+			self::API_BASE_URL."/tokens/{$_ENV['TRELLO_API_TOKEN']}/member",
+			[
+				'query' => ['key' => $_ENV['TRELLO_API_KEY'], 'token' => $_ENV['TRELLO_API_TOKEN'], 'fields' => ['id']],
+			]
+		);
+		
+		$response = json_decode((string)$response->getBody(), true, 512, JSON_THROW_ON_ERROR);
+		
+		return $response['id'];
 	}
 	
 	private function getUsernameByMemberId($id): string {
