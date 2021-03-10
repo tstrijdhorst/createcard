@@ -54,7 +54,8 @@ class CreateCardCommand extends Command {
 		}
 		
 		if ($descriptionInteractive) {
-			$temporaryFilePath = tempnam(sys_get_temp_dir(), 'cc_desc_');
+			$temporaryFilePath = tempnam(sys_get_temp_dir(), 'cc_desc_').'.md';
+			touch($temporaryFilePath);
 			exec('vim '.$temporaryFilePath.' > `tty`');
 			$description = file_get_contents($temporaryFilePath);
 			unlink($temporaryFilePath);
