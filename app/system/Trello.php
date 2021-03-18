@@ -129,7 +129,7 @@ class Trello {
 		return false;
 	}
 	
-	private function getMemberIdFromToken() : string {
+	private function getMemberIdFromToken(): string {
 		$response = $this->httpClient->get(
 			self::API_BASE_URL."/tokens/{$_ENV['TRELLO_API_TOKEN']}/member",
 			[
@@ -161,9 +161,7 @@ class Trello {
 	 * @throws \JsonException
 	 */
 	private function getMemberIdByUsernameOrAlias(string $usernameOrAlias): string {
-		if (isset($this->aliases['members'][$usernameOrAlias])) {
-			$usernameOrAlias = $this->aliases['members'][$usernameOrAlias];
-		}
+		$usernameOrAlias = $this->resolveUsernameAlias($usernameOrAlias);
 		
 		$memberIds = $this->getBoardMembers($_SERVER['TRELLO_BOARD_ID']);
 		
@@ -268,5 +266,51 @@ class Trello {
 			return array_merge($carry, [strtolower($listInfo['name']) => $listInfo['id']]);
 		}, []
 		);
+	}
+	
+	/**
+	 * @param string $cardId
+	 * @param array  $memberNames
+	 */
+	public function assignFYI(string $cardId, array $memberNames) {
+		foreach($memberNames as $memberName) {
+			$fyiMemberId = $this->getMemberIdByUsernameOrAlias($memberName);
+			if (!$this->isMemberOfCard($cardId, $fyiMemberId)) {
+				$this->httpClient->post(
+					self::API_BASE_URL."/cards/{$cardId}/idMembers",
+					[
+						'query' => ['key' => $_ENV['TRELLO_API_KEY'], 'token' => $_ENV['TRELLO_API_TOKEN']],
+						'json'  => [
+							'value' => $fyiMemberId,
+						],
+					]
+				);
+			}
+		}
+		
+		$fyiMessage = array_reduce($memberNames, function ($carry, $memberName) {
+			return $carry .= '@'.$this->resolveUsernameAlias($memberName).' ';
+		}, '').' FYI';
+		
+		$this->httpClient->post(
+			self::API_BASE_URL."/cards/{$cardId}/actions/comments",
+			[
+				'query' => ['key' => $_ENV['TRELLO_API_KEY'], 'token' => $_ENV['TRELLO_API_TOKEN']],
+				'json'  => [
+					'text' => $fyiMessage,
+				],
+			]
+		);
+	}
+	
+	/**
+	 * @param string $usernameOrAlias
+	 * @return mixed|string
+	 */
+	private function resolveUsernameAlias(string $usernameOrAlias) {
+		if (isset($this->aliases['members'][$usernameOrAlias])) {
+			$usernameOrAlias = $this->aliases['members'][$usernameOrAlias];
+		}
+		return $usernameOrAlias;
 	}
 }

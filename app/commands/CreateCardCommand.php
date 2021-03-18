@@ -30,6 +30,7 @@ class CreateCardCommand extends Command {
 		$this->addOption('label', 'l', InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'Labels to add to the card');
 		$this->addOption('member', 'm', InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'Members to assign to the card');
 		$this->addOption('reviewer', 'r', InputOption::VALUE_REQUIRED, 'Member to assign as reviewer');
+		$this->addOption('fyi', null, InputOption::VALUE_IS_ARRAY | InputOption::VALUE_REQUIRED, 'Notify users with FYI');
 		$this->addOption('description', 'd', InputOption::VALUE_REQUIRED, 'Describe what you are trying to do');
 		$this->addOption('description-interactive', 'i', InputOption::VALUE_NONE, 'Enter a description interactively via vim');
 	}
@@ -39,7 +40,8 @@ class CreateCardCommand extends Command {
 		$title                  = $input->getArgument('title');
 		$labels                 = $input->getOption('label');
 		$members                = $input->getOption('member');
-		$reviewer               = $input->getOption('reviewer');
+		$reviewerMemberName     = $input->getOption('reviewer');
+		$fyiMemberNames         = $input->getOption('fyi');
 		$description            = $input->getOption('description');
 		$descriptionInteractive = $input->getOption('description-interactive');
 		
@@ -48,7 +50,7 @@ class CreateCardCommand extends Command {
 			return Command::FAILURE;
 		}
 		
-		if ($reviewer !== null && $list !== 'review') {
+		if ($reviewerMemberName !== null && $list !== 'review') {
 			$output->writeln('Error: cannot set the --reviewer option if list is not set to `review`');
 			return Command::FAILURE;
 		}
@@ -80,8 +82,12 @@ class CreateCardCommand extends Command {
 		
 		$this->trello->attachUrlToCard($trelloCardID, $githubPRUrl);
 		
-		if ($reviewer !== null) {
-			$this->trello->assignReviewer($trelloCardID, $reviewer);
+		if ($reviewerMemberName !== null) {
+			$this->trello->assignReviewer($trelloCardID, $reviewerMemberName);
+		}
+		
+		if ($fyiMemberNames !== null) {
+			$this->trello->assignFYI($trelloCardID, $fyiMemberNames);
 		}
 		
 		$output->writeln('Card URL: '.$trelloCardUrl.PHP_EOL.'PR URL: '.$githubPRUrl);
