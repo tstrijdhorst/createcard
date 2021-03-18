@@ -110,6 +110,43 @@ class Trello {
 		);
 	}
 	
+	public function assignFYI(string $cardId, array $memberNames) {
+		if ($memberNames == []) {
+			return;
+		}
+		
+		foreach ($memberNames as $memberName) {
+			$fyiMemberId = $this->getMemberIdByUsernameOrAlias($memberName);
+			if (!$this->isMemberOfCard($cardId, $fyiMemberId)) {
+				$this->httpClient->post(
+					self::API_BASE_URL."/cards/{$cardId}/idMembers",
+					[
+						'query' => ['key' => $_ENV['TRELLO_API_KEY'], 'token' => $_ENV['TRELLO_API_TOKEN']],
+						'json'  => [
+							'value' => $fyiMemberId,
+						],
+					]
+				);
+			}
+		}
+		
+		$fyiMessage = array_reduce(
+				$memberNames, function ($carry, $memberName) {
+				return $carry .= '@'.$this->resolveUsernameAlias($memberName).' ';
+			}, ''
+			).'FYI';
+		
+		$this->httpClient->post(
+			self::API_BASE_URL."/cards/{$cardId}/actions/comments",
+			[
+				'query' => ['key' => $_ENV['TRELLO_API_KEY'], 'token' => $_ENV['TRELLO_API_TOKEN']],
+				'json'  => [
+					'text' => $fyiMessage,
+				],
+			]
+		);
+	}
+	
 	private function isMemberOfCard(string $cardId, string $memberId): bool {
 		$response = $this->httpClient->get(
 			self::API_BASE_URL."/cards/{$cardId}/members",
@@ -265,47 +302,6 @@ class Trello {
 			$boardInfo['lists'], function (array $carry, array $listInfo) {
 			return array_merge($carry, [strtolower($listInfo['name']) => $listInfo['id']]);
 		}, []
-		);
-	}
-	
-	/**
-	 * @param string $cardId
-	 * @param array  $memberNames
-	 */
-	public function assignFYI(string $cardId, array $memberNames) {
-		if ($memberNames == []) {
-			return;
-		}
-		
-		foreach ($memberNames as $memberName) {
-			$fyiMemberId = $this->getMemberIdByUsernameOrAlias($memberName);
-			if (!$this->isMemberOfCard($cardId, $fyiMemberId)) {
-				$this->httpClient->post(
-					self::API_BASE_URL."/cards/{$cardId}/idMembers",
-					[
-						'query' => ['key' => $_ENV['TRELLO_API_KEY'], 'token' => $_ENV['TRELLO_API_TOKEN']],
-						'json'  => [
-							'value' => $fyiMemberId,
-						],
-					]
-				);
-			}
-		}
-		
-		$fyiMessage = array_reduce(
-				$memberNames, function ($carry, $memberName) {
-				return $carry .= '@'.$this->resolveUsernameAlias($memberName).' ';
-			}, ''
-			).'FYI';
-		
-		$this->httpClient->post(
-			self::API_BASE_URL."/cards/{$cardId}/actions/comments",
-			[
-				'query' => ['key' => $_ENV['TRELLO_API_KEY'], 'token' => $_ENV['TRELLO_API_TOKEN']],
-				'json'  => [
-					'text' => $fyiMessage,
-				],
-			]
 		);
 	}
 	
