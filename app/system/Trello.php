@@ -226,8 +226,8 @@ class Trello {
 	}
 	
 	private function getListIdByNameOrAlias(string $listNameOrAlias): string {
-		if (isset($this->aliases['labels'][$listNameOrAlias])) {
-			$listNameOrAlias = $this->aliases['labels'][$listNameOrAlias];
+		if (isset($this->aliases['lists'][$listNameOrAlias])) {
+			$listNameOrAlias = $this->aliases['lists'][$listNameOrAlias];
 		}
 		
 		$listNameOrAlias = strtolower($listNameOrAlias);
