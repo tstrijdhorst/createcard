@@ -273,7 +273,11 @@ class Trello {
 	 * @param array  $memberNames
 	 */
 	public function assignFYI(string $cardId, array $memberNames) {
-		foreach($memberNames as $memberName) {
+		if ($memberNames == []) {
+			return;
+		}
+		
+		foreach ($memberNames as $memberName) {
 			$fyiMemberId = $this->getMemberIdByUsernameOrAlias($memberName);
 			if (!$this->isMemberOfCard($cardId, $fyiMemberId)) {
 				$this->httpClient->post(
@@ -288,9 +292,11 @@ class Trello {
 			}
 		}
 		
-		$fyiMessage = array_reduce($memberNames, function ($carry, $memberName) {
-			return $carry .= '@'.$this->resolveUsernameAlias($memberName).' ';
-		}, '').' FYI';
+		$fyiMessage = array_reduce(
+				$memberNames, function ($carry, $memberName) {
+				return $carry .= '@'.$this->resolveUsernameAlias($memberName).' ';
+			}, ''
+			).'FYI';
 		
 		$this->httpClient->post(
 			self::API_BASE_URL."/cards/{$cardId}/actions/comments",
