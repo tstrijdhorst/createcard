@@ -17,12 +17,10 @@ $configAvailable          = $environmentFileAvailable && $trelloAliasFileAvailab
 
 if (!$environmentFileAvailable) {
 	echo 'Could not locate environment file. Please make sure '.FileHelper::getConfigFilePath().' exists and contains the right values.'.PHP_EOL;
-	$configAvailable = false;
 }
 
 if (!$trelloAliasFileAvailable) {
 	echo 'Could not locate trello aliases file. Please make sure '.FileHelper::getTrelloAliasFilePath().' exists and contains the right values.'.PHP_EOL;
-	$configAvailable = false;
 }
 
 if (!$configAvailable) {
