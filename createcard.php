@@ -11,15 +11,16 @@ use Symfony\Component\Yaml\Yaml;
 
 require_once __DIR__.'/vendor/autoload.php';
 
-$configAvailable = true;
-if (!is_file(FileHelper::getConfigFilePath())) {
+$environmentFileAvailable = is_file(FileHelper::getConfigFilePath());
+$trelloAliasFileAvailable = is_file(FileHelper::getTrelloAliasFilePath());
+$configAvailable          = $environmentFileAvailable && $trelloAliasFileAvailable;
+
+if (!$environmentFileAvailable) {
 	echo 'Could not locate environment file. Please make sure '.FileHelper::getConfigFilePath().' exists and contains the right values.'.PHP_EOL;
-	$configAvailable = false;
 }
 
-if (!is_file(FileHelper::getTrelloAliasFilePath())) {
+if (!$trelloAliasFileAvailable) {
 	echo 'Could not locate trello aliases file. Please make sure '.FileHelper::getTrelloAliasFilePath().' exists and contains the right values.'.PHP_EOL;
-	$configAvailable = false;
 }
 
 if (!$configAvailable) {
