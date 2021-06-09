@@ -15,12 +15,12 @@ Creates a trello card and a github PR with the same title and links the URLS
 ```
 # Createcard
 alias cr="php ~/repo/createcard/createcard.php create-card "
-#   open an url in a new tab in firefox
-alias of="xargs -I{} firefox --new-tab {}"
-#   function to create a card and opening it in a new tab in firefox
+# function to create a card and opening it in a new tab in firefox
 crf ()
 {
-  cr $@ >/dev/stderr | of
+  OUTPUT=$(cr $@)
+
+  [ $? -eq 0 ] && firefox --new-tab $OUTPUT || echo $OUTPUT
 }
 # End Createcard
 ```
