@@ -33,7 +33,6 @@ class CreateCardCommand extends Command {
 		$this->addOption('fyi', null, InputOption::VALUE_IS_ARRAY | InputOption::VALUE_REQUIRED, 'Notify users with FYI');
 		$this->addOption('description', 'd', InputOption::VALUE_REQUIRED, 'Describe what you are trying to do');
 		$this->addOption('description-interactive', 'i', InputOption::VALUE_NONE, 'Enter a description interactively via vim');
-		$this->addOption('verbose', 'v', InputOption::VALUE_NONE, 'Print more information');
 	}
 	
 	protected function execute(InputInterface $input, OutputInterface $output) {
