@@ -21,9 +21,31 @@ Be sure to fill in these configfiles with the required information such as API k
 
 ## Usage
 
-Run the following to see all the options:
 ```
-php create-card.php create-card --help
+Description:
+  Creates a trello card and a github pr with the given title and crossconnects the urls
+
+Usage:
+  create-card [options] [--] <list> <title>
+
+Arguments:
+  list                           The list your card will be placed in <doing, review, test&deploy>
+  title                          The title of your card / PR
+
+Options:
+  -l, --label=LABEL              Labels to add to the card (multiple values allowed)
+  -m, --member=MEMBER            Members to assign to the card (multiple values allowed)
+  -r, --reviewer=REVIEWER        Member to assign as reviewer
+      --fyi=FYI                  Notify users with FYI (multiple values allowed)
+  -d, --description=DESCRIPTION  Describe what you are trying to do
+  -i, --description-interactive  Enter a description interactively via vim
+  -h, --help                     Display help for the given command. When no command is given display help for the list command
+  -q, --quiet                    Do not output any message
+  -V, --version                  Display this application version
+      --ansi                     Force ANSI output
+      --no-ansi                  Disable ANSI output
+  -n, --no-interaction           Do not ask any interactive question
+  -v|vv|vvv, --verbose           Increase the verbosity of messages: 1 for normal output, 2 for more verbose output and 3 for debug
 ```
 
 ### Useful aliasses (ZSH/Bash)
