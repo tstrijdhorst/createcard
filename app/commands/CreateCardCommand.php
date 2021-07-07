@@ -25,7 +25,7 @@ class CreateCardCommand extends Command {
 		parent::configure();
 		
 		$this->setDescription('Creates a trello card and a github pr with the given title and crossconnects the urls');
-		$this->addArgument('list', InputArgument::REQUIRED, 'The list your card will be placed in <doing, review, test&deploy>');
+		$this->addArgument('list', InputArgument::REQUIRED, 'The list your card will be placed in');
 		$this->addArgument('title', InputArgument::REQUIRED, 'The title of your card / PR');
 		$this->addOption('label', 'l', InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'Labels to add to the card');
 		$this->addOption('member', 'm', InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'Members to assign to the card');
@@ -47,11 +47,6 @@ class CreateCardCommand extends Command {
 		
 		if ($description !== null && $descriptionInteractive !== null) {
 			$output->writeln('Error: cannot set a description interactively when a description has already been passed');
-			return Command::FAILURE;
-		}
-		
-		if ($reviewerMemberName !== null && $list !== 'review') {
-			$output->writeln('Error: cannot set the --reviewer option if list is not set to `review`');
 			return Command::FAILURE;
 		}
 		
