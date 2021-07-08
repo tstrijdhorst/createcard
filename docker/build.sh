@@ -2,7 +2,8 @@
 
 set -e
 
-test -f ./Dockerfile || { echo "Run this from the docker directory"; exit 1; }
+
+cd $( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 docker build -t createcard:latest .
 docker run -it --rm -v "${PWD}/../:/createcard" -u root createcard composer install
