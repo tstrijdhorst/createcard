@@ -48,10 +48,13 @@ Options:
   -v|vv|vvv, --verbose           Increase the verbosity of messages: 1 for normal output, 2 for more verbose output and 3 for debug
 ```
 
-### Useful aliasses (ZSH/Bash)
+### Useful aliases (ZSH/Bash)
 Make your life easier and add an easy to remember alias to run this application. From now on examples will use these names.
 
 (Make sure you double-check the paths)
+
+**Without Docker**
+
 ```
 # Createcard
 alias cr="php ~/repo/createcard/createcard.php create-card "
@@ -65,6 +68,23 @@ crf ()
 }
 # End Createcard
 ```
+
+**With Docker**
+
+```
+# Createcard
+alias cr="~/repo/createcard/docker/createcard.sh create-card "
+
+# function to create a card and opening it in a new tab in firefox
+crf ()
+{
+  OUTPUT=$(cr $@)
+
+  [ $? -eq 0 ] && firefox --new-tab $OUTPUT || echo $OUTPUT
+}
+# End Createcard
+```
+
 
 ### Trello Aliases
 
